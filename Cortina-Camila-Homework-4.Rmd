@@ -333,6 +333,7 @@ qqnorm(log(cv_data$cases), main = "QQ Plot - Random Normal Variable")
 qqline(log(cv_data$cases), col = "gray")
 hist(log(cv_data$cases))
 
+library(Rfast)
 max_sd<- cv_data %>% group_by(country) %>% 
 
 
