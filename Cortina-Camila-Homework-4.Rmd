@@ -229,7 +229,6 @@ cv_summary <- function(d, country_list = "World",
 
 ##Challenge 1
 ```{r}
-detach(package:MASS)
 cv_summary(cv_data)
 ```
 
@@ -310,7 +309,9 @@ r.squaredGLMM(model) #R squared values for the full model
 r.squaredGLMM(bestm) # R squared values for the best model
 
 #Repeating for daily infection rate
-daily_model<- lm(log(cases)~ log(density) + log(population) + log(gdp_capita) + income, data = cv_data)
+cv_data<- cv_data %>% group_by(country) %>% mutate(max_daily = max(cases))
+daily_model<- lm(log(max_daily)~ log(density) + log(population) + log(gdp_capita) + income, data = cv_data)
+summary(daily_model)
 (s_daily<- stepAIC(daily_model, scope = .~., direction = "both"))
 drop1(daily_model, test = "F")
 daily2<- update(daily_model, .~. -log(population))
@@ -329,15 +330,20 @@ r.squaredGLMM(m3) # R squared values for the best model
 ##Challenge 7
 ```{r}
 #testing normality of cases
-qqnorm(log(cv_data$cases), main = "QQ Plot - Random Normal Variable")
-qqline(log(cv_data$cases), col = "gray")
-hist(log(cv_data$cases))
+qqnorm(log(cv_data$max_daily), main = "QQ Plot - Random Normal Variable")
+qqline(log(cv_data$max_daily), col = "gray")
+hist(log(cv_data$max_daily))
 
 library(Rfast)
-max_sd<- cv_data %>% group_by(country) %>% 
+cv_data<- cv_data %>% group_by(country) %>% mutate(max_sd = max(soc_dist)) %>% filter(max_sd > 0)  #adds the max_sd
+cv_data<- cv_data %>% group_by(country) %>% mutate(max_mr = max(mov_rest)) %>% filter(max_mr > 0) #adds the max_mr
 
 
-daily_model_update<- lm(log(cases) ~ log())
+daily_model_update<- lm(log(max_daily) ~ log(density) + log(max_sd), data = cv_data)
+stepAIC(daily_model_update)
+daily_model_update2<- lm(log(max_daily) ~ log(density) + log(max_mr), data = cv_data)
+stepAIC(daily_model_update2) #this one does lower the AIC more than soc_dist, but it is still not lower than the model without these predictors
+stepAIC(daily3) #the model without these predictors has a lower AIC
 ```
 
 
@@ -356,6 +362,5 @@ null<- lmer(log(rate) ~  (1|country) + (1|date), REML = FALSE, data = cv_data_fi
   modnames = c("full", "minusmov", "minussoc", "minusgdp", "null")
 ))#best model is the full model
 r.squaredGLMM(m1) # R squared for the full/best model
-
 
 ```
